@@ -8,7 +8,6 @@ const bcrypt = require("bcrypt")
 // Public
 const getMember = asyncHandler(async (req, res) => {
   const member = req.member
-
   if (member)
   {
     res.status(400)
@@ -81,6 +80,7 @@ const loginMember = asyncHandler(async (req, res) => {
   if (member && (await(bcrypt.compare(password, member.password)))) {
     res.status(200)
     res.json({
+      id: member.id,
       name: member.name,
       username: member.username,
       password: member.password,

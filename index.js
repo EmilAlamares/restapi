@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 const memberRoutes = require('./backend/routes/memberRoutes')
+const taskRoutes = require('./backend/routes/taskRoutes')
 const connectDB = require('./backend/config/db')
 const dotenv = require("dotenv").config()
 const {errorMiddleware} = require('./backend/middleware/errorMiddleware')
@@ -16,8 +17,8 @@ app.get('/', (req, res) => {
     res.status(400)
 })
 
-
 app.use('/api/members', memberRoutes)
+app.use('/api/members/tasks', taskRoutes)
 
 app.use(errorMiddleware) //Should be below of the routers
 
