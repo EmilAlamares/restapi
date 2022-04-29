@@ -1,20 +1,32 @@
-const mongoose = require("mongoose")
 const Member = require("../models/memberModel")
 const asyncHandler = require("express-async-handler")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
 
-// GET members - Get all registered members
-// api/members
+// Get member data
+// GET api/members/
 // Public
-const getMembers = asyncHandler(async (req, res) => {
-  const members = await Member.find()
-  res.status(200)
-  res.json(members)
+const getMember = asyncHandler(async (req, res) => {
+  const member = req.member
+
+  if (member)
+  {
+    res.status(400)
+    res.json(member)
+  }
+  else{
+    res.status(401)
+    throw new Error ('Something went wrong.')
+  }
+
+
 })
 
-// POST member -- Register a member
-// api/members
+// Register a member
+// POST api/members
 // Private
 const registerMember = asyncHandler(async (req, res) => {
+  let token
   const { name, username, password } = req.body
 
   if (!name || !username || !password) {
@@ -23,17 +35,38 @@ const registerMember = asyncHandler(async (req, res) => {
     throw new Error("Invalid data")
   }
 
+  const userExists = await Member.findOne({ username })
+
+  if (userExists) {
+    res.status(400)
+    throw new Error("User already exists.")
+  }
+
+  salt = await bcrypt.genSalt(10)
+  hashedPassword = await bcrypt.hash(password, salt)
+
   const member = await Member.create({
     name,
     username,
-    password,
+    password: hashedPassword,
   })
 
-  res.status(200).json(member)
+  if (member) {
+    res.status(200)
+    res.json({
+      name,
+      username,
+      password: hashedPassword,
+      token: generateToken(member._id),
+    })
+  } else {
+    res.status(400)
+    res.json("Invalid user data.")
+  }
 })
 
-// POST member -- Login a member
-// api/members/login
+// Login a member
+// POST api/members/login
 // Public
 const loginMember = asyncHandler(async (req, res) => {
   const { username, password } = req.body
@@ -45,14 +78,21 @@ const loginMember = asyncHandler(async (req, res) => {
 
   const member = await Member.findOne({ username })
 
-  if (member && member.password === password) {
+  if (member && (await(bcrypt.compare(password, member.password)))) {
     res.status(200)
-    res.json(member)
+    res.json({
+      name: member.name,
+      username: member.username,
+      password: member.password,
+      token: generateToken(member._id)
+    })
   } else {
-      res.status(400)
-      throw new Error ('Invalid credentials.')
+    res.status(400)
+    throw new Error("Invalid credentials.")
   }
-
 })
 
-module.exports = { getMembers, registerMember, loginMember }
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" })
+}
+module.exports = { getMember, registerMember, loginMember }
