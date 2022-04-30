@@ -3,27 +3,9 @@ const asyncHandler = require("express-async-handler")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 
-// Get member data
-// GET api/members/
-// Public
-const getMember = asyncHandler(async (req, res) => {
-  const member = req.member
-  if (member)
-  {
-    res.status(400)
-    res.json(member)
-  }
-  else{
-    res.status(401)
-    throw new Error ('Something went wrong.')
-  }
-
-
-})
-
 // Register a member
 // POST api/members
-// Private
+// Public
 const registerMember = asyncHandler(async (req, res) => {
   let token
   const { name, username, password } = req.body
@@ -64,6 +46,74 @@ const registerMember = asyncHandler(async (req, res) => {
   }
 })
 
+// Get member data
+// GET api/members/
+// Private
+const getMember = asyncHandler(async (req, res) => {
+  res.status(200)
+  res.json(req.member)
+
+})
+
+// Update member data
+// PUT api/members
+// Private
+const updateMember = asyncHandler(async (req, res) => {
+  let updatedMember
+  const { id } = req.member
+  const { name, password } = req.body
+
+  //Check if there's at least 1 data.
+  if (!name && !password) {
+    res.status(400)
+    throw new Error("Please input at least 1 data.")
+  }
+
+  //Hash the password if there's any
+  if (password) {
+    salt = await bcrypt.genSalt(10)
+    hashedPassword = await bcrypt.hash(password, salt)
+  }
+
+  //Updating the member
+  try {
+    updatedMember = await Member.findByIdAndUpdate(
+      id,
+      {
+        name: req.body.name ? req.body.name : req.member.name,
+        password: req.body.password ? hashedPassword : req.member.password,
+      },
+      { new: true }
+    )
+  } catch (err) {
+    res.status(500)
+    throw new Error("Something went wrong.")
+  }
+  res.status(200)
+  res.json(updatedMember)
+})
+
+// Delete member data
+// Delete api/members
+// Private
+const deleteMember = asyncHandler(async (req, res) => {
+  let deletedMember
+  const { id } = req.member
+
+  //Deleting the member
+  try {
+    deletedMember = await Member.findOneAndDelete({ _id: id })
+  } catch (err) {
+    res.status(500)
+    throw new Error("Something went wrong.")
+  }
+  res.status(200)
+  res.json({
+    msg: "The following member has been deleted",
+    member: deletedMember,
+  })
+})
+
 // Login a member
 // POST api/members/login
 // Public
@@ -76,15 +126,15 @@ const loginMember = asyncHandler(async (req, res) => {
   }
 
   const member = await Member.findOne({ username })
-
-  if (member && (await(bcrypt.compare(password, member.password)))) {
+  //Checking user credentials
+  if (member && (await bcrypt.compare(password, member.password))) {
     res.status(200)
     res.json({
       id: member.id,
       name: member.name,
       username: member.username,
       password: member.password,
-      token: generateToken(member._id)
+      token: generateToken(member._id),
     })
   } else {
     res.status(400)
@@ -95,4 +145,10 @@ const loginMember = asyncHandler(async (req, res) => {
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" })
 }
-module.exports = { getMember, registerMember, loginMember }
+module.exports = {
+  getMember,
+  registerMember,
+  loginMember,
+  updateMember,
+  deleteMember,
+}

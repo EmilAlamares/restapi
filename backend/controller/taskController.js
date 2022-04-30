@@ -1,6 +1,5 @@
 const Task = require("../models/taskModel")
 const asyncHandler = require("express-async-handler")
-const { findByIdAndDelete } = require("../models/taskModel")
 
 // Get member's tasks.
 // GET api/members/tasks
@@ -45,12 +44,7 @@ const updateTask = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error(`Task does not exist.`)
   }
-  //Check for task input
-  if (!req.body.task) {
-    res.status(400)
-    throw new Error("No task input.")
-  }
-
+  
   // Check if the member logged in, matches the
   // assigned member in the task.
   const memberMatch = task.memberAssigned == req.member.id
@@ -60,8 +54,14 @@ const updateTask = asyncHandler(async (req, res) => {
       "Member assigned to task does not match the member currently logged in."
     )
   }
+
+  //Check for task input
+  if (!req.body.task) {
+    res.status(400)
+    throw new Error("No task input.")
+  }
   //new set to true, means the returning value of the findByIdAndUpdate would
-  //be the updated document (otherwise it will just return the matching document BEFORE the update.)
+  //be the updated document (otherwise it will return the matched document BEFORE the update.)
   const updatedTask = await Task.findByIdAndUpdate(
     req.params.id,
     { taskDescription: req.body.task },
@@ -93,7 +93,10 @@ const deleteTask = asyncHandler(async (req, res) => {
 
   const deletedTask = await Task.findByIdAndDelete(req.params.id)
   res.status(200)
-  res.json([{msg:"The following task has been deleted successfully."}, {deletedTask}])
+  res.json([
+    { msg: "The following task has been deleted successfully." },
+    { deletedTask },
+  ])
 })
 
 module.exports = { getTasks, createTask, updateTask, deleteTask }
