@@ -46,6 +46,7 @@ const registerMember = asyncHandler(async (req, res) => {
   }
 })
 
+// test commit 
 // Get member data
 // GET api/members/
 // Private
