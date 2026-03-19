@@ -47,6 +47,7 @@ const registerMember = asyncHandler(async (req, res) => {
 })
 
 // test commit 
+// ako to si mbelinky
 // Get member data
 // GET api/members/
 // Private
